@@ -1,3 +1,5 @@
-# motor-controller-with-soft-start-stop
-Arduino-based MOSFET motor controller with power control and soft start/stop feature.
-# drinking-water-pump-controller
+Arduino-based MOSFET pump controller using water pressure.
+- operations mode (continuous and water-pressure-based)
+- soft start/stop/speed transition feature
+- ability to adjust water pressure (ask) and water flow via potentiometers
+
