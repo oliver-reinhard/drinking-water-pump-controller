@@ -24,7 +24,7 @@
     const pin_t OPERATION_MODE_IN_PIN = PB0;       // Pin 5 - digital in with pull-up configration
     
     const pin_t PUMP_PWM_OUT_PIN = PB1;             // Pin 6 - PWM @ native frequency
-    const pin_t STATUS_LED_OUT_PIN = PB0;   //*** NOT WIRED ***     // Pin 1 (PB5) - digital out; is on when pump is off, blinks while transitioning
+    const pin_t STATUS_LED_OUT_PIN = PB0;   //*** ATtiny85: NOT WIRED / CONFIGURED ***     // Pin 1 (PB5) - digital out; is on when pump is off, blinks while transitioning
       
   #endif 
 

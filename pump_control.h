@@ -67,4 +67,7 @@ void handlePumpStateTransition();
 void setStatusLED(boolean value);
 void invertStatusLED();
 
+// #### FOR TESTING PURPOSES ONLY ###
+void setPumpDutyValue(duty_value_t value);
+
 #endif

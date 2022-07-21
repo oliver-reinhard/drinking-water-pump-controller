@@ -5,7 +5,8 @@
 #include "pins.h"
 #include "pump_control.h"
 
-#define DEBUG_STATE
+#define DEBUG_STATES
+#define INPUT_OUTPUT_TEST_MODE
 
 // --------------------
 // CONFIGURABLE VALUES
@@ -177,8 +178,14 @@ void setup() {
   configInput(WATER_FLOW_POTI_IN_PIN);
   configInputWithPullup(OPERATION_MODE_IN_PIN);
   
-//  configOutput(STATUS_LED_OUT_PIN);
   configOutput(PUMP_PWM_OUT_PIN);
+  
+  #if defined(__AVR_ATmega328P__)  
+    configOutput(STATUS_LED_OUT_PIN);
+    
+  #elif defined(__AVR_ATtiny85__)
+    // configOutput(STATUS_LED_OUT_PIN);   ******** NOT CONFIGURED ********
+  #endif
 
   #ifdef VERBOSE
     // Setup Serial Monitor
@@ -206,16 +213,20 @@ void setup() {
 // LOOP
 //
 void loop() { 
-  
-//  setStatusLED(HIGH);
-//  delay(1000);
-//  setStatusLED(LOW);
-//  delay(1000);
+
+  #ifdef INPUT_OUTPUT_TEST_MODE
+    loop_io_test_mode();
+  #else
+    loop_prod_mode();
+  #endif
+}
+
+void loop_prod_mode() {
   
   uint32_t now = millis();  
    
   if (pumpState() == PUMP_STARTING || pumpState() == PUMP_STOPPING || pumpState() == PUMP_SPEEDING_UP || pumpState() == PUMP_SLOWING_DOWN) {
-    #if defined(VERBOSE) && defined(DEBUG_STATE) 
+    #if defined(VERBOSE) && defined(DEBUG_STATES) 
       Serial.println("-- 1 Transitioning");
     #endif
     // finish transitioning before processing pressure inputs!
@@ -228,13 +239,13 @@ void loop() {
     }
     
   } else if (readMode() != controllerMode) {
-    #if defined(VERBOSE) && defined(DEBUG_STATE) 
+    #if defined(VERBOSE) && defined(DEBUG_STATES) 
       Serial.println("-- 2 Mode changed");
     #endif
     updateControllerModeAndState();
 
   } else if (controllerState == STATE_CONTINUOUS) {
-    #if defined(VERBOSE) && defined(DEBUG_STATE) 
+    #if defined(VERBOSE) && defined(DEBUG_STATES) 
       Serial.println("-- 3 Continuous Mode");
     #endif
     if (pumpState() == PUMP_OFF) {
@@ -242,7 +253,7 @@ void loop() {
     }
 
   } else if (controllerState == STATE_PRESSURE_LOW || controllerState == STATE_PRESSURE_UP) { 
-    #if defined(VERBOSE) && defined(DEBUG_STATE) 
+    #if defined(VERBOSE) && defined(DEBUG_STATES) 
       Serial.println("-- 4 Pressure-Driven Mode");
     #endif
     readActualPressure();
@@ -276,7 +287,7 @@ void loop() {
     upddateTargetWaterFlow(readTargetWaterFlowRaw());  // may set pump state to PUMP_SPEEDING_UP or PUMP_SLOWING DOWN
     
   } else if (controllerState == STATE_ERROR) {
-    #if defined(VERBOSE) && defined(DEBUG_STATE) 
+    #if defined(VERBOSE) && defined(DEBUG_STATES) 
       Serial.println("-- 5 Error");
     #endif
     if (controllerMode != MODE_ERROR) {
@@ -295,7 +306,7 @@ void loop() {
     }
     
 //  } else {
-//    #if defined(VERBOSE) && defined(DEBUG_STATE) 
+//    #if defined(VERBOSE) && defined(DEBUG_STATES) 
 //      Serial.print("-- 6: state = ");
 //      Serial.println(controllerStateName());
 //    #endif
@@ -303,3 +314,141 @@ void loop() {
   
   _delay_ms(CONTROL_CYCLE_DURATION);  
 }
+
+
+#ifdef INPUT_OUTPUT_TEST_MODE
+
+  typedef enum {
+      TEST_INIT,
+      TEST_PWM_OUTPUT,
+      TEST_MODE_INPUT,
+      TEST_FLOW_INPUT,
+      TEST_TARGET_PRESSURE_INPUT,
+      TEST_ACTUAL_PRESSURE_INPUT,
+      TEST_ENDED
+  } TestStage;
+  
+  TestStage testStage = TEST_INIT;
+  
+  #ifdef VERBOSE
+    char* testStageName() {
+      switch (testStage) {
+        case TEST_INIT: return "TEST_INIT";
+        case TEST_PWM_OUTPUT: return "TEST_PWM_OUTPUT";
+        case TEST_MODE_INPUT: return "TEST_MODE_INPUT";
+        case TEST_FLOW_INPUT: return "TEST_FLOW_INPUT";
+        case TEST_TARGET_PRESSURE_INPUT: return "TEST_TARGET_PRESSURE_INPUT";
+        case TEST_ACTUAL_PRESSURE_INPUT: return "TEST_ACTUAL_PRESSURE_INPUT";
+        case TEST_ENDED: return "TEST_ENDED";
+        default: return "UNKNOWN";
+      }
+    }
+  #endif 
+
+void blinkPwmOutput() {
+  for(int i=0; i<5; i++) {
+    setPumpDutyValue(ANALOG_OUT_MAX);
+    _delay_ms(500);
+    setPumpDutyValue(ANALOG_OUT_MIN);
+    _delay_ms(500);
+  }
+}
+
+void loop_io_test_mode() {
+  #ifdef VERBOSE
+    Serial.println("");
+    Serial.println("*****************");
+    Serial.print("Stage = ");
+    Serial.println(testStageName());
+  #endif
+  
+  _delay_ms(3000);
+  
+  switch (testStage) {
+    
+    case TEST_INIT: 
+      flashLED(STATUS_LED_OUT_PIN, 5);
+      _delay_ms(1000);
+      flashLED(STATUS_LED_OUT_PIN, 5);
+      testStage = TEST_PWM_OUTPUT;
+      break;
+    
+    case TEST_PWM_OUTPUT: 
+      for(int j=0; j<2; j++) {
+        for(int i=1; i<= 4; i++) {
+          setPumpDutyValue(ANALOG_OUT_MAX * i / 4);
+          _delay_ms(500);
+        }
+        setPumpDutyValue(ANALOG_OUT_MIN);
+        _delay_ms(500);
+      }
+      blinkPwmOutput();
+      testStage = TEST_MODE_INPUT;
+      break;
+      
+    case TEST_MODE_INPUT: readMode();
+      for(int i=0; i<50; i++) {
+        setPumpDutyValue(readMode() ? ANALOG_OUT_MAX : ANALOG_OUT_MIN);
+        _delay_ms(100);
+      }
+      blinkPwmOutput();
+      testStage = TEST_FLOW_INPUT;
+      break;
+      
+    case TEST_FLOW_INPUT: 
+      for(int i=1; i<=50; i++) {
+        analog_read_t value = readTargetWaterFlowRaw();
+        setPumpDutyValue(value / 4);
+        _delay_ms(100);
+        #ifdef VERBOSE
+          if (i % 5 == 0) {
+            Serial.print("Flow = ");
+            Serial.println(value);
+          }
+        #endif
+      }
+      blinkPwmOutput();
+      testStage = TEST_TARGET_PRESSURE_INPUT;
+      break;
+      
+    case TEST_TARGET_PRESSURE_INPUT: 
+      for(int i=1; i<=50; i++) {
+        analog_read_t value = readTargetPressureRaw();
+        setPumpDutyValue(value / 4);
+        _delay_ms(100);
+        #ifdef VERBOSE
+          if (i % 5 == 0) {
+            Serial.print("Target Pressure = ");
+            Serial.println(value);
+          }
+        #endif
+      }
+      blinkPwmOutput();
+      testStage = TEST_ACTUAL_PRESSURE_INPUT;
+      break;
+      
+    case TEST_ACTUAL_PRESSURE_INPUT: 
+      for(int i=1; i<=50; i++) {
+        analog_read_t value = readActualPressureRaw();
+        setPumpDutyValue(value / 4);
+        _delay_ms(100);
+        #ifdef VERBOSE
+          if (i % 5 == 0) {
+            Serial.print("Actual Pressure = ");
+            Serial.println(value);
+          }
+        #endif
+      }
+      blinkPwmOutput();
+      testStage = TEST_ENDED;
+      break;
+
+    case TEST_ENDED:
+      break;
+      
+    default:
+      break;
+  }
+}
+  
+#endif
