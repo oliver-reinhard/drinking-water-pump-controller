@@ -1,3 +1,11 @@
+//
+// IMPORTANT NOTE
+// 
+// On the ATtiny85, this controller is supposed to run at 8 MHz. If not then adjust F_CPU (see util/delay.h) accordingly:
+//  - in the main program file
+//  - in io_util.cpp
+// and replace the use the millis() function against a clock-corrected source.
+
 
 #include <avr/io.h>
 #include <util/delay.h>
@@ -5,8 +13,9 @@
 #include "pins.h"
 #include "pump_control.h"
 
-#define DEBUG_STATES
-#define INPUT_OUTPUT_TEST_MODE
+//  #define DEBUG_STATES
+
+// #define INPUT_OUTPUT_TEST_MODE
 
 // --------------------
 // CONFIGURABLE VALUES
@@ -207,6 +216,7 @@ void setup() {
 
   updateControllerModeAndState();
   setStatusLED(HIGH);
+  _delay_ms(2000);
 }
 
 //
@@ -345,13 +355,28 @@ void loop_prod_mode() {
     }
   #endif 
 
-void blinkPwmOutput() {
-  for(int i=0; i<5; i++) {
+void blinkPwmOutput(uint16_t times) {
+  for(int i=0; i<times; i++) {
     setPumpDutyValue(ANALOG_OUT_MAX);
-    _delay_ms(500);
+    _delay_ms(300);
     setPumpDutyValue(ANALOG_OUT_MIN);
-    _delay_ms(500);
+    _delay_ms(300);
   }
+}
+
+void signalInputTestBegin(uint16_t stage) {
+    blinkPwmOutput(2);
+    #if defined(__AVR_ATtiny85__)
+      _delay_ms(1000);
+      blinkPwmOutput(stage);
+      _delay_ms(1000);
+      setPumpDutyValue(ANALOG_OUT_MAX);
+      _delay_ms(2000);
+      setPumpDutyValue(ANALOG_OUT_MIN);
+    #endif
+}
+void signalTestEnd() {
+  blinkPwmOutput(4);
 }
 
 void loop_io_test_mode() {
@@ -362,14 +387,22 @@ void loop_io_test_mode() {
     Serial.println(testStageName());
   #endif
   
-  _delay_ms(3000);
+  _delay_ms(2000);
   
   switch (testStage) {
     
     case TEST_INIT: 
-      flashLED(STATUS_LED_OUT_PIN, 5);
-      _delay_ms(1000);
-      flashLED(STATUS_LED_OUT_PIN, 5);
+      #if defined(__AVR_ATtiny85__)
+        configOutput(TINY_AVR_PROGRAMMER_LED_PIN); // ********** only works when running on the Tiny AVR Programmer
+      # endif
+      
+      flashLED(TINY_AVR_PROGRAMMER_LED_PIN, 5);
+      _delay_ms(500);
+      flashLED(TINY_AVR_PROGRAMMER_LED_PIN, 5);
+      
+      #if defined(__AVR_ATtiny85__)
+        configInputWithPullup(OPERATION_MODE_IN_PIN); // **********
+      # endif
       testStage = TEST_PWM_OUTPUT;
       break;
     
@@ -377,26 +410,28 @@ void loop_io_test_mode() {
       for(int j=0; j<2; j++) {
         for(int i=1; i<= 4; i++) {
           setPumpDutyValue(ANALOG_OUT_MAX * i / 4);
-          _delay_ms(500);
+          _delay_ms(300);
         }
         setPumpDutyValue(ANALOG_OUT_MIN);
-        _delay_ms(500);
+        _delay_ms(300);
       }
-      blinkPwmOutput();
+      signalTestEnd();
       testStage = TEST_MODE_INPUT;
       break;
       
-    case TEST_MODE_INPUT: readMode();
-      for(int i=0; i<50; i++) {
-        setPumpDutyValue(readMode() ? ANALOG_OUT_MAX : ANALOG_OUT_MIN);
+    case TEST_MODE_INPUT:
+      signalInputTestBegin(1);
+      for(int i=0; i<100; i++) {
+        setPumpDutyValue(readMode() ? ANALOG_OUT_MIN : ANALOG_OUT_MAX);
         _delay_ms(100);
       }
-      blinkPwmOutput();
+      signalTestEnd();
       testStage = TEST_FLOW_INPUT;
       break;
       
     case TEST_FLOW_INPUT: 
-      for(int i=1; i<=50; i++) {
+      signalInputTestBegin(2);
+      for(int i=1; i<=100; i++) {
         analog_read_t value = readTargetWaterFlowRaw();
         setPumpDutyValue(value / 4);
         _delay_ms(100);
@@ -407,12 +442,13 @@ void loop_io_test_mode() {
           }
         #endif
       }
-      blinkPwmOutput();
+      signalTestEnd();
       testStage = TEST_TARGET_PRESSURE_INPUT;
       break;
       
     case TEST_TARGET_PRESSURE_INPUT: 
-      for(int i=1; i<=50; i++) {
+      signalInputTestBegin(3);
+      for(int i=1; i<=100; i++) {
         analog_read_t value = readTargetPressureRaw();
         setPumpDutyValue(value / 4);
         _delay_ms(100);
@@ -423,12 +459,13 @@ void loop_io_test_mode() {
           }
         #endif
       }
-      blinkPwmOutput();
+      signalTestEnd();
       testStage = TEST_ACTUAL_PRESSURE_INPUT;
       break;
       
     case TEST_ACTUAL_PRESSURE_INPUT: 
-      for(int i=1; i<=50; i++) {
+      signalInputTestBegin(4);
+      for(int i=1; i<=100; i++) {
         analog_read_t value = readActualPressureRaw();
         setPumpDutyValue(value / 4);
         _delay_ms(100);
@@ -439,11 +476,12 @@ void loop_io_test_mode() {
           }
         #endif
       }
-      blinkPwmOutput();
+      signalTestEnd();
       testStage = TEST_ENDED;
       break;
 
     case TEST_ENDED:
+      blinkPwmOutput(100);
       break;
       
     default:

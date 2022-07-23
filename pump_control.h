@@ -13,16 +13,16 @@
 // --------------------
 
 const millivolt_t PUMP_MAX_VOLTAGE           = 6000;   // [mV]
-const millivolt_t PUMP_LOW_THRESHOLD_VOLTAGE = 1500;   // [mV] // below this voltage, the pump will not rotate
+const millivolt_t PUMP_LOW_THRESHOLD_VOLTAGE =  500;   // [mV] // below this voltage, the pump will not rotate
 const millibar_t  PUMP_MAX_PRESSURE          = 4900;   // [mBar]
 
 // Pump soft start and stop:
-const millivolt_t PUMP_START_DURATION = 2000;  // [ms] duration from full stop to full throttle
+const millivolt_t PUMP_START_DURATION = 4000;  // [ms] duration from full stop to full throttle
 const millivolt_t PUMP_STOP_DURATION  = 1000;   // [ms] duration from full throttle to full stop
 
 // Control cycle: output values are set only once per cycle
-const duration32_ms_t CONTROL_CYCLE_DURATION = 500; // [ms]
-const duration32_ms_t MIN_PUMP_STATE_PERSISTENCE = 1000; // milliseconds
+const duration32_ms_t CONTROL_CYCLE_DURATION = 200; // [ms]
+const duration32_ms_t MIN_PUMP_STATE_PERSISTENCE = 200; // milliseconds
 
 
 // --------------------

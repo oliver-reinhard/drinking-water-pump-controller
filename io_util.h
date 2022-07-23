@@ -6,6 +6,8 @@
 
   // MISC DATA TYPES
   
+  typedef uint8_t pin_t;
+  
   typedef uint16_t time16_ms_t;
   typedef uint32_t time32_ms_t;
   typedef uint16_t time16_s_t;
@@ -18,8 +20,6 @@
   typedef int16_t millibar_t;
   
   const millibar_t MILLIBAR_PER_PSI = 69;
-  
-  typedef uint8_t pin_t;
 
   //
   // ANALOG IN
@@ -27,13 +27,7 @@
   typedef uint16_t analog_read_t;
   
   const analog_read_t ANALOG_IN_MIN = 0;        // Arduino constant
-  
-  #if defined(__AVR_ATmega328P__)
-    const analog_read_t ANALOG_IN_MAX = 1023;   // Arduino constant
-      
-  #elif defined(__AVR_ATtiny85__)
-    const analog_read_t ANALOG_IN_MAX = 255;    // Arduino constant
-  #endif
+  const analog_read_t ANALOG_IN_MAX = 1023;   // Arduino constant
   
   const millivolt_t ANALOG_IN_MAX_VOLTAGE = 5000; // Arduino constant
 

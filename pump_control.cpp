@@ -252,18 +252,15 @@ void handlePumpStateTransition() {
 //
 void setPumpDutyValue(duty_value_t value) {
   pumpActualDutyValue = value;
-  #if defined(__AVR_ATmega328P__)
-    analogWrite(PUMP_PWM_OUT_PIN, value); // Send PWM signal
-    
-  #elif defined(__AVR_ATtiny85__)
-    OCR1A = value;
-  #endif
+  analogWrite(PUMP_PWM_OUT_PIN, value); // Send PWM signal
 }
 
 
 void setStatusLED(boolean value) {
   statusLEDState = value;
-  digitalWrite(STATUS_LED_OUT_PIN, value);
+  if (STATUS_LED_OUT_PIN != PIN_NOT_WIRED) {
+    digitalWrite(STATUS_LED_OUT_PIN, value);
+  }
 }
 
 void invertStatusLED() {

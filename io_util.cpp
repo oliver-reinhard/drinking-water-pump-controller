@@ -1,3 +1,13 @@
+//
+// IMPORTANT NOTE
+// 
+// On the ATtiny85, this controller is supposed to run at 1 MHz. If not then adjust F_CPU (see util/delay.h) accordingly:
+//  - in the main program file
+//  - in io_util.cpp
+//
+// and replace the use the millis() function against a clock-corrected source.
+
+
 #include <avr/delay.h>
 #include "io_util.h"
   
@@ -30,5 +40,5 @@ void flashLED(pin_t pin, uint8_t times) {
 }
   
 static inline void debounceSwitch() {
-  delay(SWITCH_DEBOUNCE_WAIT_MS);
+  _delay_ms(SWITCH_DEBOUNCE_WAIT_MS);
 }

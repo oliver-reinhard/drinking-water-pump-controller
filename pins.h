@@ -3,6 +3,8 @@
   
   #include <Arduino.h> 
 
+  const pin_t PIN_NOT_WIRED = 99;
+  
   #if defined(__AVR_ATmega328P__)
   
     #define VERBOSE
@@ -24,7 +26,8 @@
     const pin_t OPERATION_MODE_IN_PIN = PB0;       // Pin 5 - digital in with pull-up configration
     
     const pin_t PUMP_PWM_OUT_PIN = PB1;             // Pin 6 - PWM @ native frequency
-    const pin_t STATUS_LED_OUT_PIN = PB0;   //*** ATtiny85: NOT WIRED / CONFIGURED ***     // Pin 1 (PB5) - digital out; is on when pump is off, blinks while transitioning
+    const pin_t TINY_AVR_PROGRAMMER_LED_PIN = PB0;  // Temporary use of PB0 (=OPERATION_MODE_IN_PIN) as a status indicator during TESTING ONLY
+    const pin_t STATUS_LED_OUT_PIN = PIN_NOT_WIRED;   //*** ATtiny85: NOT WIRED / CONFIGURED ***     // digital out; is on when pump is off, blinks while transitioning
       
   #endif 
 
