@@ -14,6 +14,8 @@
 
   typedef int16_t duration16_ms_t;
   typedef int32_t duration32_ms_t;
+
+  typedef int16_t percentage_t;
   
   typedef uint16_t millivolt_t;
   

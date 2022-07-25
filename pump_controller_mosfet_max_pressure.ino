@@ -29,11 +29,13 @@
 const millibar_t PRESSURE_SENSOR_MIN_PRESSURE = MILLIBAR_PER_PSI *  0 /*psi*/;
 const millibar_t PRESSURE_SENSOR_MAX_PRESSURE = MILLIBAR_PER_PSI * 80 /*psi*/;
 
-const millibar_t PRESSURE_CHANGE_MIN_DELTA = 30; // Only turn on the pump if there is a significant pressure drop
-
 const millivolt_t PRESSURE_SENSOR_MIN_VOLTAGE = 457;    // corresponds to PRESSURE_SENSOR_MIN_PRESSURE
 const millivolt_t PRESSURE_SENSOR_MAX_VOLTAGE = 4500;   // corresponds to PRESSURE_SENSOR_MAX_PRESSURE
 
+const millibar_t  PUMP_ON_MIN_PRESSURE_DELTA_ABS = 50; // [mBar] Only turn on the pump if there is a minimum absolute pressure difference between acutal and target
+const percentage_t PUMP_ON_MIN_PRESSURE_DELTA_REL = 50; // [%] Hysteresis: only turn on the pump if acutal pressure is less than the given percentage of the target
+
+const duration16_ms_t FIRST_PUMP_START_DELAY = 5000; // [ms] On controller init, wait before starting up pump for the first time. This allows other devices (like UV water treatment to start first on POWER ON).
 
 //
 // CONTROLLER STATES
@@ -216,7 +218,12 @@ void setup() {
 
   updateControllerModeAndState();
   setStatusLED(HIGH);
-  _delay_ms(2000);
+  
+  #ifdef VERBOSE
+    Serial.print("Initial pump-on delay [ms] = ");
+    Serial.println(FIRST_PUMP_START_DELAY());
+  #endif
+  _delay_ms(FIRST_PUMP_START_DELAY);
 }
 
 //
@@ -269,7 +276,7 @@ void loop_prod_mode() {
     readActualPressure();
     readTargetPressure();
     
-    if (targetPressure - actualPressure >= PRESSURE_CHANGE_MIN_DELTA) {
+    if ((int32_t) actualPressure * 100 / targetPressure < PUMP_ON_MIN_PRESSURE_DELTA_REL && targetPressure - actualPressure >= PUMP_ON_MIN_PRESSURE_DELTA_ABS) {
       if (controllerState != STATE_PRESSURE_LOW) {
         controllerState = STATE_PRESSURE_LOW;
         #ifdef VERBOSE

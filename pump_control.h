@@ -12,12 +12,12 @@
 // Durations are always in [ms].
 // --------------------
 
-const millivolt_t PUMP_MAX_VOLTAGE           = 6000;   // [mV]
-const millivolt_t PUMP_LOW_THRESHOLD_VOLTAGE =  500;   // [mV] // below this voltage, the pump will not rotate
-const millibar_t  PUMP_MAX_PRESSURE          = 4900;   // [mBar]
+const millivolt_t PUMP_MAX_VOLTAGE           = 14000;   // [mV]
+const millivolt_t PUMP_LOW_THRESHOLD_VOLTAGE =  3000;   // [mV] // below this voltage, the pump will not rotate under load
+const millibar_t  PUMP_MAX_PRESSURE          =  4900;   // [mBar]
 
 // Pump soft start and stop:
-const millivolt_t PUMP_START_DURATION = 4000;  // [ms] duration from full stop to full throttle
+const millivolt_t PUMP_START_DURATION = 3000;  // [ms] duration from full stop to full throttle
 const millivolt_t PUMP_STOP_DURATION  = 1000;   // [ms] duration from full throttle to full stop
 
 // Control cycle: output values are set only once per cycle
@@ -64,6 +64,7 @@ void adaptActualWaterFlow();
 
 void handlePumpStateTransition();
 
+void printDutyValueAsPercent(duty_value_t value);
 void setStatusLED(boolean value);
 void invertStatusLED();
 

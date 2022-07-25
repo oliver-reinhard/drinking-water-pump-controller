@@ -52,6 +52,7 @@ duty_value_t pumpActualDutyValue = ANALOG_OUT_MIN; // value actually set on outp
 uint32_t transitionBeginTime = 0;
 duty_value_t transitioningDutyValue = ANALOG_OUT_MIN; // incremented in discrete steps until pump is at its target speed or its low end
 
+
 /* 
  *  Evaluate if the target water flow of the pump has changed signficantly and record the new value.
  *  
@@ -88,7 +89,8 @@ bool upddateTargetWaterFlow(analog_read_t newFlow) {
  }
   #ifdef VERBOSE
     Serial.print("New Duty Value (Flow): ");
-    Serial.println(pumpTargetDutyValue);
+    printDutyValueAsPercent(pumpTargetDutyValue);
+    Serial.println();
   #endif
   return true;
 }
@@ -171,7 +173,8 @@ void handlePumpStateTransition() {
       invertStatusLED();
       #ifdef VERBOSE
         Serial.print(pumpState_ == PUMP_STARTING ? "Starting: " : "Speeding up: ");
-        Serial.println(transitioningDutyValue);
+        printDutyValueAsPercent(transitioningDutyValue);
+        Serial.println();
       #endif
       
       if (transitioningDutyValue == pumpTargetDutyValue) {
@@ -197,7 +200,8 @@ void handlePumpStateTransition() {
       invertStatusLED();
       #ifdef VERBOSE
         Serial.print("Stopping: ");
-        Serial.println(transitioningDutyValue);
+        printDutyValueAsPercent(transitioningDutyValue);
+        Serial.println();
       #endif
       
       if (transitioningDutyValue == ANALOG_OUT_MIN) {
@@ -228,7 +232,8 @@ void handlePumpStateTransition() {
       invertStatusLED();
       #ifdef VERBOSE
         Serial.print("Slowing down: ");
-        Serial.println(transitioningDutyValue);
+        printDutyValueAsPercent(transitioningDutyValue);
+        Serial.println();
       #endif
       
       if (transitioningDutyValue == pumpTargetDutyValue) {
@@ -255,6 +260,10 @@ void setPumpDutyValue(duty_value_t value) {
   analogWrite(PUMP_PWM_OUT_PIN, value); // Send PWM signal
 }
 
+void printDutyValueAsPercent(duty_value_t value) {
+  Serial.print((uint16_t) value * 100 / ANALOG_OUT_MAX);
+  Serial.print("%");
+}
 
 void setStatusLED(boolean value) {
   statusLEDState = value;
