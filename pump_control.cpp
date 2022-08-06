@@ -252,6 +252,16 @@ void handlePumpStateTransition() {
   }
 }
 
+void emergencyStop() {
+  if (pumpState_  != PUMP_OFF) {
+    pumpState_ = PUMP_OFF;
+    transitionBeginTime = 0;
+    transitioningDutyValue = ANALOG_OUT_MIN;
+    setStatusLED(LOW);
+    setPumpDutyValue(ANALOG_OUT_MIN);
+  }
+}
+
 //
 // Utility Routines
 //

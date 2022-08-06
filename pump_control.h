@@ -64,6 +64,8 @@ void adaptActualWaterFlow();
 
 void handlePumpStateTransition();
 
+void emergencyStop();
+
 void printDutyValueAsPercent(duty_value_t value);
 void setStatusLED(boolean value);
 void invertStatusLED();

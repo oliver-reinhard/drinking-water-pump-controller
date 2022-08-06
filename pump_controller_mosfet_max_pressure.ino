@@ -25,12 +25,19 @@
 // Durations are always in [ms].
 // --------------------
 
-
+// PRESSURE SENSOR:
 const millibar_t PRESSURE_SENSOR_MIN_PRESSURE = MILLIBAR_PER_PSI *  0 /*psi*/;
 const millibar_t PRESSURE_SENSOR_MAX_PRESSURE = MILLIBAR_PER_PSI * 80 /*psi*/;
 
 const millivolt_t PRESSURE_SENSOR_MIN_VOLTAGE = 457;    // corresponds to PRESSURE_SENSOR_MIN_PRESSURE
 const millivolt_t PRESSURE_SENSOR_MAX_VOLTAGE = 4500;   // corresponds to PRESSURE_SENSOR_MAX_PRESSURE
+
+// OPERATIONAL BOUNDARIES:
+const millibar_t  SYSTEM_MAX_PRESSURE         =  min(3000, PUMP_MAX_PRESSURE);   // [mBar]
+
+//#if (SYSTEM_MAX_PRESSURE < PUMP_MAX_PRESSURE)  // ONLY WORKS FOR #DEFINE'd VALUES
+//  #error "SYSTEM_MAX_PRESSURE > PUMP_MAX_PRESSURE"
+//#endif
 
 const millibar_t  PUMP_ON_MIN_PRESSURE_DELTA_ABS = 50; // [mBar] Only turn on the pump if there is a minimum absolute pressure difference between acutal and target
 const percentage_t PUMP_ON_MIN_PRESSURE_DELTA_REL = 50; // [%] Hysteresis: only turn on the pump if acutal pressure is less than the given percentage of the target
@@ -109,7 +116,7 @@ analog_read_t readTargetPressureRaw() {
 }
 
 millibar_t convertTargetPressure(analog_read_t pressureRaw) {
-  return (uint32_t) pressureRaw * PUMP_MAX_PRESSURE / ANALOG_IN_MAX;
+  return (uint32_t) pressureRaw * SYSTEM_MAX_PRESSURE / ANALOG_IN_MAX;
 }
 
 bool readTargetPressure() {
@@ -242,33 +249,61 @@ void loop_prod_mode() {
   
   uint32_t now = millis();  
    
+  //
+  // PUMP IS TRANSITIONING
+  //
   if (pumpState() == PUMP_STARTING || pumpState() == PUMP_STOPPING || pumpState() == PUMP_SPEEDING_UP || pumpState() == PUMP_SLOWING_DOWN) {
     #if defined(VERBOSE) && defined(DEBUG_STATES) 
       Serial.println("-- 1 Transitioning");
     #endif
-    // finish transitioning before processing pressure inputs!
-    controllerState = STATE_TRANSITIONING;
-    handlePumpStateTransition();
-    if (pumpState() == PUMP_ON) {
-      controllerState = controllerMode == MODE_CONTINUOUS ? STATE_CONTINUOUS : STATE_PRESSURE_LOW;
-    } else if (pumpState() == PUMP_OFF) {
-      controllerState = controllerMode == MODE_CONTINUOUS ? STATE_ERROR : STATE_PRESSURE_UP;
+    
+    readActualPressure();
+    if (actualPressure > SYSTEM_MAX_PRESSURE) {
+      emergencyStop();
+      controllerState = controllerMode == MODE_CONTINUOUS ? STATE_CONTINUOUS : STATE_PRESSURE_UP;
+      
+    } else {
+      // finish transitioning before processing pressure inputs!
+      controllerState = STATE_TRANSITIONING;
+      handlePumpStateTransition();
+      if (pumpState() == PUMP_ON) {
+        controllerState = controllerMode == MODE_CONTINUOUS ? STATE_CONTINUOUS : STATE_PRESSURE_LOW;
+      } else if (pumpState() == PUMP_OFF) {
+        controllerState = controllerMode == MODE_CONTINUOUS ? STATE_ERROR : STATE_PRESSURE_UP;
+      }
     }
     
+  //
+  // MODE CHANGE
+  //
   } else if (readMode() != controllerMode) {
     #if defined(VERBOSE) && defined(DEBUG_STATES) 
       Serial.println("-- 2 Mode changed");
     #endif
     updateControllerModeAndState();
 
+  //
+  // CONTINUOUS MODE
+  //
   } else if (controllerState == STATE_CONTINUOUS) {
     #if defined(VERBOSE) && defined(DEBUG_STATES) 
       Serial.println("-- 3 Continuous Mode");
     #endif
-    if (pumpState() == PUMP_OFF) {
-      toggleMode(now);
+    
+    readActualPressure();
+    if (actualPressure > SYSTEM_MAX_PRESSURE) {
+      if (pumpState() == PUMP_ON) {
+        emergencyStop();
+      }
+    } else {
+      if (pumpState() == PUMP_OFF) {
+        toggleMode(now);
+      }
     }
-
+    
+  //
+  // PRESSURE-DRIVEN MODE
+  //
   } else if (controllerState == STATE_PRESSURE_LOW || controllerState == STATE_PRESSURE_UP) { 
     #if defined(VERBOSE) && defined(DEBUG_STATES) 
       Serial.println("-- 4 Pressure-Driven Mode");
@@ -303,6 +338,9 @@ void loop_prod_mode() {
     
     upddateTargetWaterFlow(readTargetWaterFlowRaw());  // may set pump state to PUMP_SPEEDING_UP or PUMP_SLOWING DOWN
     
+  //
+  // ERROR
+  //
   } else if (controllerState == STATE_ERROR) {
     #if defined(VERBOSE) && defined(DEBUG_STATES) 
       Serial.println("-- 5 Error");

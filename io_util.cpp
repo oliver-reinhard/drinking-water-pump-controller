@@ -8,7 +8,7 @@
 // and replace the use the millis() function against a clock-corrected source.
 
 
-#include <avr/delay.h>
+#include <util/delay.h>
 #include "io_util.h"
   
 void configInput(pin_t pin) {
