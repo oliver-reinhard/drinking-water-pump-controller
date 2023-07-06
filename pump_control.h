@@ -47,7 +47,7 @@ typedef enum {
 PumpState pumpState();
 
 #ifdef VERBOSE
-  char* pumpStateName();
+  const char* pumpStateName();
 #endif
 
 /*

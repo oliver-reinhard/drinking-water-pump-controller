@@ -14,7 +14,7 @@ PumpState pumpState() {
 }
 
 #ifdef VERBOSE
-  char* pumpStateName() {
+  const char* pumpStateName() {
     switch (pumpState_) {
       case PUMP_OFF: return "OFF";
       case PUMP_STARTING: return "STARTING";

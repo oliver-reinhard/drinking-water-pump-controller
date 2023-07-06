@@ -12,10 +12,10 @@
   typedef uint32_t time32_ms_t;
   typedef uint16_t time16_s_t;
 
-  typedef int16_t duration16_ms_t;
-  typedef int32_t duration32_ms_t;
+  typedef uint16_t duration16_ms_t;
+  typedef uint32_t duration32_ms_t;
 
-  typedef int16_t percentage_t;
+  typedef uint16_t percentage_t;
   
   typedef uint16_t millivolt_t;
   

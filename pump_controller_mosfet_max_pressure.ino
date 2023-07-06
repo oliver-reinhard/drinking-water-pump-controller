@@ -63,7 +63,7 @@ typedef enum {
 ControllerState controllerState;
 
 #ifdef VERBOSE
-  char* controllerStateName() {
+  const char* controllerStateName() {
     switch (controllerState) {
       case STATE_TRANSITIONING: return "TRANSITIONING";
       case STATE_CONTINUOUS: return "CONTINUOUS";
@@ -228,7 +228,7 @@ void setup() {
   
   #ifdef VERBOSE
     Serial.print("Initial pump-on delay [ms] = ");
-    Serial.println(FIRST_PUMP_START_DELAY());
+    Serial.println(FIRST_PUMP_START_DELAY);
   #endif
   _delay_ms(FIRST_PUMP_START_DELAY);
 }
